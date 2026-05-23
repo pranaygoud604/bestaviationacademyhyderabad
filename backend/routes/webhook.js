@@ -1,10 +1,7 @@
 // Webhook routes
-//   POST /webhook/meta        — Meta Lead Ads (free, receives form submissions)
+//   POST /webhook/meta        — Meta Lead Ads (receives form submissions)
 //   GET  /webhook/meta        — Meta hub verification
-//
-// WhatsApp inbound messages are NOT handled here.
-// Live chat is managed in AiSensy's own inbox (webhook subscription not purchased).
-// AiSensy is used only for outbound: /api/messages/send, /api/campaigns/send.
+//   POST /webhook/aisensy     — AiSensy inbound messages → auto-create leads
 
 const express  = require('express');
 const crypto   = require('crypto');
@@ -107,6 +104,89 @@ async function handleMetaLeadForm(leadData) {
 
   console.log(`[Meta Lead] "${lead.name}" → ${employee?.name || 'unassigned'}`);
   return lead;
+}
+
+// ── AiSensy incoming webhook ──────────────────────────────────────────────────
+// Configure webhook URL in AiSensy Dashboard → Settings → Webhooks:
+//   https://bestaviationacademyhyderabad.com/webhook/aisensy
+//
+// AiSensy sends this payload for inbound messages:
+//   { waId: "919876543210", name: "John Doe", message: { type, text, ... } }
+
+router.post('/aisensy', async (req, res) => {
+  // Optional HMAC verification (set AISENSY_WEBHOOK_SECRET in .env)
+  const secret = process.env.AISENSY_WEBHOOK_SECRET;
+  if (secret && secret !== 'your_secret_here') {
+    const sig = req.headers['x-hub-signature-256'] || req.headers['x-aisensy-signature'];
+    if (sig && req.rawBody) {
+      const expected = 'sha256=' + crypto
+        .createHmac('sha256', secret)
+        .update(req.rawBody)
+        .digest('hex');
+      try {
+        if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
+          console.warn('[AiSensy Webhook] Invalid signature');
+          return res.sendStatus(401);
+        }
+      } catch {
+        return res.sendStatus(401);
+      }
+    }
+  }
+
+  res.sendStatus(200); // respond fast
+
+  handleAiSensyEvent(req.body).catch(err =>
+    console.error('[AiSensy Webhook] error:', err.message)
+  );
+});
+
+async function handleAiSensyEvent(payload) {
+  // Support multiple payload shapes AiSensy may send
+  const phone = payload.waId || payload.phone || payload.from || '';
+  const name  = payload.name || payload.userName || payload.contactName || '';
+
+  if (!phone) {
+    console.warn('[AiSensy Webhook] No phone in payload:', JSON.stringify(payload).slice(0, 200));
+    return;
+  }
+
+  // Skip if lead already exists for this phone
+  const { data: existing } = await supabase
+    .from('leads')
+    .select('id')
+    .eq('phone', phone)
+    .maybeSingle();
+
+  if (existing) return; // already tracked
+
+  const employee = await assignLead();
+
+  const { data: lead, error } = await supabase.from('leads').insert({
+    name:        name || 'WhatsApp Lead',
+    phone,
+    source:      'WhatsApp (AiSensy)',
+    status:      employee ? 'assigned' : 'new',
+    priority:    'medium',
+    assigned_to: employee?.id  || null,
+    assigned_at: employee ? new Date().toISOString() : null,
+  }).select().single();
+
+  if (error) throw error;
+
+  if (employee) {
+    await supabase.from('lead_assignments').insert({
+      lead_id: lead.id, employee_id: employee.id, assignment_type: 'auto',
+    }).catch(() => {});
+  }
+
+  await supabase.from('lead_activities').insert({
+    lead_id:     lead.id,
+    type:        'lead_created',
+    description: `Lead created via WhatsApp (AiSensy)`,
+  }).catch(() => {});
+
+  console.log(`[AiSensy Webhook] New lead "${lead.name}" (${phone}) → ${employee?.name || 'unassigned'}`);
 }
 
 module.exports = router;
