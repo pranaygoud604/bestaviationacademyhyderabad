@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, CheckCircle, Clock, AlertCircle, Phone, Mail, MessageSquare, Users, RefreshCw, Trash2, ChevronDown, Calendar } from 'lucide-react';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL ?? '';
+const BACKEND = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
 
 const TASK_TYPES = {
   call:      { label: 'Call',      icon: Phone,        color: 'blue' },

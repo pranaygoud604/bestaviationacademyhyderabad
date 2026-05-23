@@ -1548,7 +1548,7 @@ function EmployeesPage({ employees, leads }) {
 }
 
 function WhatsAppPage({ employees, currentUser }) {
-  const BACKEND = import.meta.env.VITE_BACKEND_URL ?? '';
+  const BACKEND = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
 
   const [bCampaign, setBCampaign]         = useState('');
   const [bFilter, setBFilter]             = useState({ status: '', source: '' });

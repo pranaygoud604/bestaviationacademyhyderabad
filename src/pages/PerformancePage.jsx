@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, TrendingUp, Target, Clock, CheckSquare, AlertTriangle, ChevronUp, ChevronDown, RefreshCw } from 'lucide-react';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL ?? '';
+const BACKEND = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
