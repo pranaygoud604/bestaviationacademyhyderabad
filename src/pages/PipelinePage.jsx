@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Flame, Thermometer, Snowflake, User, ChevronRight, RefreshCw, Filter, MoreHorizontal, Clock, TrendingUp } from 'lucide-react';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+const BACKEND = import.meta.env.VITE_BACKEND_URL ?? '';
 
 const STAGES = [
   { id: 'new',        label: 'New',        color: 'slate',  hex: '#94a3b8', icon: '🆕' },

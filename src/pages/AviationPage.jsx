@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plane, FileText, Calendar, Users, CheckCircle, AlertCircle, Plus, RefreshCw, ChevronDown, X } from 'lucide-react';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+const BACKEND = import.meta.env.VITE_BACKEND_URL ?? '';
 
 const COURSES = ['PPL','CPL','ATPL','IR','ME','Diploma','Ground School'];
 

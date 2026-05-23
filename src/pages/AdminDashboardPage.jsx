@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, AlertTriangle, TrendingUp, Users, Clock, CheckCircle, RefreshCw, Activity, Zap, BarChart2 } from 'lucide-react';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+const BACKEND = import.meta.env.VITE_BACKEND_URL ?? '';
 
 const SEVERITY_CONFIG = {
   critical: { color: 'border-red-500/50 bg-red-500/5',    badge: 'bg-red-500/20 text-red-400',    dot: 'bg-red-500' },
