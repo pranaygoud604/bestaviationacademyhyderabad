@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
     .update({ status: 'overdue', updated_at: new Date().toISOString() })
     .eq('status', 'pending')
     .lt('due_date', new Date().toISOString())
-    .catch(() => {});
+    .then(null, () => {});
 
   let q = supabase
     .from('follow_up_tasks')
@@ -68,7 +68,7 @@ router.get('/summary', async (req, res) => {
     .update({ status: 'overdue' })
     .eq('status', 'pending')
     .lt('due_date', now.toISOString())
-    .catch(() => {});
+    .then(null, () => {});
 
   const base = () => {
     let q = supabase.from('follow_up_tasks').select('id', { count: 'exact', head: true });
@@ -118,14 +118,14 @@ router.post('/', async (req, res) => {
   await supabase.from('leads')
     .update({ follow_up_date: dueDate, last_activity_at: new Date().toISOString() })
     .eq('id', leadId)
-    .catch(() => {});
+    .then(null, () => {});
 
   // Log activity
   await supabase.from('lead_activities').insert({
     lead_id: leadId,
     type:    'follow_up_scheduled',
     description: `Follow-up scheduled: ${title} due ${new Date(dueDate).toLocaleDateString()}`,
-  }).catch(() => {});
+  }).then(null, () => {});
 
   res.status(201).json(data);
 });
@@ -162,7 +162,7 @@ router.patch('/:id', async (req, res) => {
       lead_id:     data.lead_id,
       type:        'follow_up_completed',
       description: `Follow-up completed: ${data.title}`,
-    }).catch(() => {});
+    }).then(null, () => {});
   }
 
   res.json(data);
@@ -203,7 +203,7 @@ router.post('/escalate-overdue', async (req, res) => {
     type:        'follow_up_escalated',
     description: `Follow-up escalated to manager: ${t.title}`,
   }));
-  await supabase.from('lead_activities').insert(activityInserts).catch(() => {});
+  await supabase.from('lead_activities').insert(activityInserts).then(null, () => {});
 
   res.json({ escalated: overdueTasks.length });
 });

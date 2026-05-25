@@ -166,7 +166,7 @@ router.post('/send', async (req, res) => {
     lead_id:     leadId,
     type:        'message_sent',
     description: `Sent WhatsApp ${type}: ${content.substring(0, 100)}`,
-  }).catch(() => {});
+  }).then(null, () => {});
 
   res.json({ message: savedMsg, waMessageId });
 });

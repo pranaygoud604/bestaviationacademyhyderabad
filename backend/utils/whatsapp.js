@@ -77,7 +77,7 @@ async function markAsRead(messageId) {
     messaging_product: 'whatsapp',
     status:     'read',
     message_id: messageId,
-  }).catch(() => {});
+  }).then(null, () => {});
 }
 
 // Returns { url, mime_type, sha256, file_size, id } from Meta media endpoint

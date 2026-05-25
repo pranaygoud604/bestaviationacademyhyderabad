@@ -90,7 +90,7 @@ router.patch('/:id/stage', async (req, res) => {
     changed_by:          changedBy || null,
     time_in_stage_hours: timeInStageHours,
     notes,
-  }).catch(() => {});
+  }).then(null, () => {});
 
   res.json({ ...updated, pipeline_stage: stage });
 });

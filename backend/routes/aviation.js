@@ -92,7 +92,7 @@ router.post('/documents', async (req, res) => {
     lead_id:     leadId,
     type:        'document_submitted',
     description: `Document submitted: ${name} (${type})`,
-  }).catch(() => {});
+  }).then(null, () => {});
 
   res.status(201).json(data);
 });
@@ -123,7 +123,7 @@ router.patch('/documents/:id', async (req, res) => {
     lead_id:     data.lead_id,
     type:        'document_updated',
     description: `Document ${status}: ${data.name}`,
-  }).catch(() => {});
+  }).then(null, () => {});
 
   res.json(data);
 });
@@ -224,7 +224,7 @@ router.post('/batches/:id/assign', async (req, res) => {
     lead_id:     leadId,
     type:        'batch_assigned',
     description: `Assigned to batch: ${batch.name} (${batch.course})`,
-  }).catch(() => {});
+  }).then(null, () => {});
 
   res.json(data);
 });
@@ -266,13 +266,13 @@ router.post('/interviews', async (req, res) => {
 
   if (error) return res.status(400).json({ error: error.message });
 
-  await supabase.from('leads').update({ interview_date: scheduledAt }).eq('id', leadId).catch(() => {});
+  await supabase.from('leads').update({ interview_date: scheduledAt }).eq('id', leadId).then(null, () => {});
 
   await supabase.from('lead_activities').insert({
     lead_id:     leadId,
     type:        'interview_scheduled',
     description: `Interview scheduled for ${new Date(scheduledAt).toLocaleString()}`,
-  }).catch(() => {});
+  }).then(null, () => {});
 
   res.status(201).json(data);
 });
@@ -303,7 +303,7 @@ router.patch('/interviews/:id', async (req, res) => {
       lead_id:     data.lead_id,
       type:        'interview_updated',
       description: `Interview ${status}${outcome ? ': ' + outcome : ''}`,
-    }).catch(() => {});
+    }).then(null, () => {});
   }
 
   res.json(data);

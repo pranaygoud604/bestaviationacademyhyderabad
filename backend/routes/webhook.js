@@ -90,20 +90,20 @@ async function handleMetaLeadForm(leadData) {
   if (employee) {
     await supabase.from('lead_assignments').insert({
       lead_id: lead.id, employee_id: employee.id, assignment_type: 'auto',
-    }).catch(() => {});
+    }).then(null, () => {});
   }
 
   await supabase.from('lead_activities').insert({
     lead_id:     lead.id,
     type:        'lead_created',
     description: `Lead created via Meta Lead Ad: ${leadData.ad_name || 'Unknown Ad'}`,
-  }).catch(() => {});
+  }).then(null, () => {});
 
   // Also sync the new lead to AiSensy contacts (best-effort)
   const { syncContact } = require('../utils/aisensy');
   syncContact(lead.phone, lead.name, lead.email, {
     leadId: lead.id, source: 'Meta Lead Ad', adName: leadData.ad_name || '',
-  }).catch(() => {});
+  }).then(null, () => {});
 
   console.log(`[Meta Lead] "${lead.name}" → ${employee?.name || 'unassigned'}`);
   return lead;

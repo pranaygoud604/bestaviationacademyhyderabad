@@ -58,7 +58,7 @@ router.post('/send', async (req, res) => {
     description: `Broadcast campaign "${campaignName}" sent`,
     metadata:    { campaignName, templateParams },
   }));
-  supabase.from('lead_activities').insert(activities).catch(() => {});
+  supabase.from('lead_activities').insert(activities).then(null, () => {});
 
   res.json({ ...result, campaignName });
 });

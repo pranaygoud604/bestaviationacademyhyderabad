@@ -54,7 +54,7 @@ router.post('/', async (req, res) => {
     leadId: lead.id,
     source: lead.source || '',
     status: lead.status || 'new',
-  }).catch(() => {});
+  }).then(null, () => {});
 
   res.status(201).json(lead);
 });

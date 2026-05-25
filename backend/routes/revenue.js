@@ -247,7 +247,7 @@ router.post('/record', async (req, res) => {
     lead_id:     leadId,
     type:        'payment_received',
     description: `Payment recorded: ₹${Number(amount).toLocaleString('en-IN')} (${type || 'enrollment'})`,
-  }).catch(() => {});
+  }).then(null, () => {});
 
   res.status(201).json(data);
 });
