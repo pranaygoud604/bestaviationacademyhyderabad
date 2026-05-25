@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../db/supabase');
-const { assignLeadToEmployee, autoAssignAllUnassigned } = require('../utils/leadAssignment');
+const { assignLead, assignLeadToEmployee, autoAssignAllUnassigned } = require('../utils/leadAssignment');
 const { syncContact } = require('../utils/aisensy');
 
 // GET /api/leads — list with optional filters
