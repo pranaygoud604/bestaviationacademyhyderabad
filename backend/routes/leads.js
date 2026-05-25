@@ -119,16 +119,12 @@ router.post('/whatsapp-add', async (req, res) => {
   if (error) return res.status(400).json({ error: error.message });
 
   if (employee) {
-    await supabase.from('lead_assignments').insert({
-      lead_id: lead.id, employee_id: employee.id, assignment_type: 'auto',
-    }).catch(() => {});
+    try { await supabase.from('lead_assignments').insert({ lead_id: lead.id, employee_id: employee.id, assignment_type: 'auto' }); } catch {}
   }
 
-  await supabase.from('lead_activities').insert({
-    lead_id:     lead.id,
-    type:        'lead_created',
-    description: 'Lead created via WhatsApp Direct',
-  }).catch(() => {});
+  try {
+    await supabase.from('lead_activities').insert({ lead_id: lead.id, type: 'lead_created', description: 'Lead created via WhatsApp Direct' });
+  } catch {}
 
   res.status(201).json(lead);
 });
