@@ -1555,8 +1555,10 @@ function WhatsAppPage({ employees, currentUser }) {
   const [bPreviewCount, setBPreviewCount] = useState(null);
   const [bSending, setBSending]           = useState(false);
   const [bResult, setBResult]             = useState(null);
-  const [syncing, setSyncing]             = useState(false);
-  const [syncResult, setSyncResult]       = useState(null);
+  const [waPhone, setWaPhone]   = useState('');
+  const [waName, setWaName]     = useState('');
+  const [waAdding, setWaAdding] = useState(false);
+  const [waResult, setWaResult] = useState(null);
 
   const fetchBroadcastPreview = async (filter) => {
     const f = filter || bFilter;
@@ -1574,17 +1576,28 @@ function WhatsAppPage({ employees, currentUser }) {
 
   useEffect(() => { fetchBroadcastPreview(); }, []);
 
-  const handleSyncAiSensy = async () => {
-    setSyncing(true);
-    setSyncResult(null);
+  const handleAddWaLead = async () => {
+    if (!waPhone.trim() || waAdding) return;
+    setWaAdding(true);
+    setWaResult(null);
     try {
-      const res = await fetch(`${BACKEND}/api/leads/sync-aisensy`, { method: 'POST' });
+      const res = await fetch(`${BACKEND}/api/leads/whatsapp-add`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ phone: waPhone.trim(), name: waName.trim() }),
+      });
       const d = await res.json();
-      setSyncResult(res.ok ? { ok: true, ...d } : { ok: false, error: d.error });
+      if (res.ok) {
+        setWaResult({ ok: true, msg: `✓ Lead "${d.name}" added and assigned` });
+        setWaPhone('');
+        setWaName('');
+      } else {
+        setWaResult({ ok: false, msg: d.error });
+      }
     } catch (e) {
-      setSyncResult({ ok: false, error: e.message });
+      setWaResult({ ok: false, msg: e.message });
     } finally {
-      setSyncing(false);
+      setWaAdding(false);
     }
   };
 
@@ -1637,30 +1650,40 @@ function WhatsAppPage({ employees, currentUser }) {
         </p>
       </div>
 
-      {/* ── Sync from AiSensy ─────────────────────────────────────────────── */}
-      <div className="backdrop-blur-lg bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-xl p-5">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <h4 className="font-medium text-white text-sm">Import Contacts from AiSensy</h4>
-            <p className="text-xs text-slate-400 mt-0.5">Pull all AiSensy contacts and create them as leads in the CRM</p>
-          </div>
+      {/* ── Add WhatsApp Lead ─────────────────────────────────────────────── */}
+      <div className="backdrop-blur-lg bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-xl p-5 space-y-4">
+        <div>
+          <h4 className="font-medium text-white text-sm">Add WhatsApp Lead</h4>
+          <p className="text-xs text-slate-400 mt-0.5">Copy a number from AiSensy inbox and add it directly as a lead</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            value={waPhone}
+            onChange={e => setWaPhone(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAddWaLead()}
+            placeholder="Phone with country code e.g. 919876543210"
+            className="flex-1 bg-slate-800/60 border border-slate-700/50 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 transition-all"
+          />
+          <input
+            value={waName}
+            onChange={e => setWaName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAddWaLead()}
+            placeholder="Name (optional)"
+            className="sm:w-44 bg-slate-800/60 border border-slate-700/50 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 transition-all"
+          />
           <button
-            onClick={handleSyncAiSensy}
-            disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:text-slate-500 rounded-xl text-white text-sm font-medium transition-all flex-shrink-0"
+            onClick={handleAddWaLead}
+            disabled={!waPhone.trim() || waAdding}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 disabled:text-slate-500 rounded-xl text-white text-sm font-medium transition-all flex-shrink-0"
           >
-            {syncing ? (
-              <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Syncing…</>
-            ) : (
-              <><Download size={14} />Sync Leads from AiSensy</>
-            )}
+            {waAdding
+              ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              : <><Plus size={14} />Add Lead</>}
           </button>
         </div>
-        {syncResult && (
-          <div className={`mt-3 px-3 py-2.5 rounded-lg text-xs font-medium ${syncResult.ok ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
-            {syncResult.ok
-              ? `✓ ${syncResult.message} (${syncResult.skipped} already existed)`
-              : `✗ ${syncResult.error}`}
+        {waResult && (
+          <div className={`px-3 py-2 rounded-lg text-xs font-medium ${waResult.ok ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
+            {waResult.msg}
           </div>
         )}
       </div>

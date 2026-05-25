@@ -88,74 +88,49 @@ router.post('/auto-assign', async (req, res) => {
   res.json({ message: `Auto-assigned ${assigned.length} leads`, leads: assigned });
 });
 
-// POST /api/leads/sync-aisensy — pull contacts from AiSensy and import as leads
-router.post('/sync-aisensy', async (req, res) => {
-  const apiKey = process.env.AISENSY_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'AISENSY_API_KEY not configured' });
+// POST /api/leads/whatsapp-add — quick-add a WhatsApp lead by phone number
+// Used from the Broadcasts page when a user copies a number from AiSensy inbox.
+router.post('/whatsapp-add', async (req, res) => {
+  const { phone, name, email = '' } = req.body;
+  if (!phone) return res.status(400).json({ error: 'phone required' });
 
-  let allContacts = [];
-  let page = 1;
-  const pageSize = 100;
+  // Skip if already exists
+  const { data: existing } = await supabase
+    .from('leads')
+    .select('id')
+    .eq('phone', phone)
+    .maybeSingle();
 
-  // Paginate through all AiSensy contacts
-  while (true) {
-    const resp = await fetch(
-      `https://backend.aisensy.com/contact/t1/api/contacts?page=${page}&limit=${pageSize}`,
-      { headers: { Authorization: `Bearer ${apiKey}` } }
-    );
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      return res.status(502).json({ error: err.message || `AiSensy API error ${resp.status}` });
-    }
-    const json = await resp.json().catch(() => ({}));
-    const contacts = json.contacts || json.data || (Array.isArray(json) ? json : []);
-    if (!contacts.length) break;
-    allContacts = allContacts.concat(contacts);
-    if (contacts.length < pageSize) break;
-    page++;
+  if (existing) return res.status(409).json({ error: 'Lead with this phone number already exists' });
+
+  const employee = await assignLead();
+
+  const { data: lead, error } = await supabase.from('leads').insert({
+    name:        name || 'WhatsApp Lead',
+    phone,
+    email,
+    source:      'WhatsApp Direct',
+    status:      employee ? 'assigned' : 'new',
+    priority:    'medium',
+    assigned_to: employee?.id  || null,
+    assigned_at: employee ? new Date().toISOString() : null,
+  }).select().single();
+
+  if (error) return res.status(400).json({ error: error.message });
+
+  if (employee) {
+    await supabase.from('lead_assignments').insert({
+      lead_id: lead.id, employee_id: employee.id, assignment_type: 'auto',
+    }).catch(() => {});
   }
 
-  if (!allContacts.length) {
-    return res.json({ imported: 0, skipped: 0, message: 'No contacts found in AiSensy' });
-  }
+  await supabase.from('lead_activities').insert({
+    lead_id:     lead.id,
+    type:        'lead_created',
+    description: 'Lead created via WhatsApp Direct',
+  }).catch(() => {});
 
-  // Fetch existing phones from Supabase to avoid duplicates
-  const { data: existing } = await supabase.from('leads').select('phone');
-  const existingPhones = new Set((existing || []).map(l => l.phone));
-
-  const { assignLead } = require('../utils/leadAssignment');
-  let imported = 0;
-  let skipped  = 0;
-
-  for (const c of allContacts) {
-    const phone = c.phone || c.waId || c.phoneNumber || '';
-    if (!phone || existingPhones.has(phone)) { skipped++; continue; }
-
-    const firstName = c.firstName || c.first_name || '';
-    const lastName  = c.lastName  || c.last_name  || '';
-    const name      = (firstName + ' ' + lastName).trim() || c.name || 'AiSensy Contact';
-    const email     = c.email || '';
-
-    const employee = await assignLead();
-
-    const { error } = await supabase.from('leads').insert({
-      name,
-      phone,
-      email,
-      source:      'WhatsApp (AiSensy)',
-      status:      employee ? 'assigned' : 'new',
-      priority:    'medium',
-      assigned_to: employee?.id  || null,
-      assigned_at: employee ? new Date().toISOString() : null,
-    });
-
-    if (!error) {
-      existingPhones.add(phone); // prevent duplicates within this batch
-      imported++;
-    }
-  }
-
-  res.json({ imported, skipped, total: allContacts.length, message: `Imported ${imported} new leads from AiSensy` });
+  res.status(201).json(lead);
 });
 
 // DELETE /api/leads/:id
